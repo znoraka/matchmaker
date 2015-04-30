@@ -15,6 +15,12 @@
 (define (make-team id slots [used-slots '()])
   (team id slots used-slots))
 
+(define (make-affectation slot team1 team2)
+  (affectation slot (team-id team1) (team-id team2)))
+
+(define (team-equal? t1 t2)
+  (equal? (team-id t1) (team-id t2)))
+
 ;; match-number => nombre de matchs désiré
 ;; team => une team
 ;; vrai quand nombre match < nombre assignations
@@ -33,57 +39,54 @@
                                 (hash-set! h j (cons i (hash-ref h j '()))))
                               (team-slots i)))) teams)
       h))
-  (sort (hash->list (make-teams-hash teams)) (λ (i j)
-                                              (> (length i) (length j)))))
+  (map (λ (i)
+         (cons (car i)
+               (sort (cdr i)
+                     (λ (i j)
+                       (< (length (team-slots i)) (length (team-slots j)))))))
+       (sort (hash->list (make-teams-hash teams)) (λ (i j)
+                                                    (> (length i) (length j))))))
 
-;; ;; week-number => nombre de semaines pour le tournoi
-;; ;; teams => list de struct team
-;; ;; composition entre les slots et le numero des semaines
-;; (define (create-slots slots teams)
-;;   (map (λ (i)
-;;          (make-team (team-id i)
-;;                (foldr (λ (n l)
-;;                         (append
-;;                          (map (λ (slot) (~a 's n '- slot)) (team-slots i))
-;;                          l)) '() (build-list week-number values)))) teams))
+;; marque le slot comme utilisé et l'enleve des slots disponibles
+(define (use-slot team slot)
+  (make-team (team-id team)
+             (remove slot (team-slots team))
+             (cons slot (team-used-slots team))))
 
-;; ;; lance une erreur si le nombre de slots est inférieur
-;; ;; au nombre de matchs
-;; (define (check-teams match-number teams)
-;;   (for-each (λ (i)
-;;               (when (> match-number (length (team-slots i)))
-;;                 (error (~a "erreur : la team " (team-id i) " n'a pas assez d'assignations\n"
-;;                            "nombre de matchs : " match-number " - nombre d'assignations : "
-;;                            (length (team-slots i)))))) teams))
-
-;; teams => list de struct de team
-;; list des affectations
- (define (compute-affectations teams)
-   (void))
-
-;; teams => list de struct de team
-;; trouve deux teams avec une affectation possible
-(define (select-teams match-number teams)
-  (define (make-team-pair t1 t2)
-    (if (or (not (or (available? match-number t1) (available? match-number t2))) (eq? t1 t2))
-        #f
-        (let ([x (for*/or ([i (team-slots t1)]
-                           [j (team-slots t2)])
-                   ((λ (i j)
-                      (if (equal? i j)
-                          i
-                          #f)) i j))])
-          (if x `(,t1 ,t2 ,x) #f))))
-  (for*/or ([i teams]
-            [j teams])
-    (make-team-pair i j)))
+;; match-number => nombre de match
+;; sorted-slots => slots triés par nombre de teams
+;; crée tous les matches possibles pour le slot le plus peuplé
+(define (make-matches match-number teams)
+  (let* ([sorted-slots (sort-slots match-number teams)]
+         [slot (caar sorted-slots)]
+         [t (filter (λ (i)
+                      (available? match-number i)) (cdar sorted-slots))])
+    (let f ([t t] [used '()] [affectations '()])
+      (if (< (length t) 2)
+          (let ([teams (filter (λ (i)
+                                  (not (memf (λ (j)
+                                               (team-equal? i j)) used))) teams)])
+            `(,(append teams used) ,affectations))
+          (let* ([t1 (use-slot (car t) slot)]
+                 [t2 (use-slot (cadr t) slot)]
+                 [t (remove (car t) (remove (cadr t) t))])
+            (f t
+               (append used `(,t1) `(,t2))
+               (append affectations `(,(make-affectation slot t1 t2)))))))))
 
 (define (make-n-random-teams slots n)
   (define (select-random-slots slots nbslots)
-    (take (shuffle slots) (min (- (length slots) 1) nbslots)))
-    
+    (take (shuffle slots) (min (- (length slots) 1) nbslots))) 
   (build-list n (λ (i)
-                  (make-team i (select-random-slots slots (random 10))))))
+                  (make-team i (select-random-slots slots (random (length slots)))))))
 
-(define t (shuffle (make-n-random-teams all-slots 10)))
-(time (sort-slots match-number t))
+;; (time (sort-slots match-number t)(void))
+(define (test)
+  (define t (shuffle (make-n-random-teams all-slots 10)))
+  (let f ([teams t] (affectations '()))
+    (let ([res (make-matches match-number teams)])
+      (if (empty? (cadr res))
+          (begin
+            (pretty-display teams)
+            affectations)
+          (f (car res) (append affectations (cadr res)))))))
