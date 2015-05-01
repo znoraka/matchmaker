@@ -6,6 +6,7 @@
 (struct affectation (slot team1 team2) #:transparent)
 
 (define match-number 5)
+;; (define all-slots '(s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15 s16 s17 s18 s19 s20))
 (define all-slots '(s1 s2 s3 s4 s5 s6 s7 s8 s9 s10))
 
 ;; crée une team
@@ -48,7 +49,7 @@
        (sort (hash->list (make-teams-hash teams)) (λ (i j)
                                                     (> (length i) (length j))))))
 
- ;; marque le slot comme utilisé et l'enleve des slots disponibles
+;; marque le slot comme utilisé et l'enleve des slots disponibles
 (define (use-slot team slot all-slots opponent)
   (define (make-all-unused-slots used-slots all-slots)
     (filter (λ (i)
@@ -71,10 +72,15 @@
   (define (find-match teams)
     (for*/or ([t1 teams]
               [t2 teams])
-      ((λ (i j)
-         (if (or (eq? i j) (already-matched? i j))
-             #f
-             `(,i ,j))) t1 t2)))
+      (if (or (team-equal? t1 t2) (already-matched? t1 t2))
+          #f
+            `(,t1 ,t2))))
+
+  (define (format-to-return teams used affectations)
+    (let ([teams (filter (λ (i)
+                           (not (memf (λ (j)
+                                        (team-equal? i j)) used))) teams)])
+      `(,(append teams used) ,affectations)))
 
   (let* ([sorted-slots (sort-slots match-number teams)]
          [slot (caar sorted-slots)]
@@ -82,20 +88,18 @@
                       (available? match-number i)) (cdar sorted-slots))])
     (let f ([t t] [used '()] [affectations '()])
       (if (< (length t) 2)
-          (let ([teams (filter (λ (i)
-                                  (not (memf (λ (j)
-                                               (team-equal? i j)) used))) teams)])
-            `(,(append teams used) ,affectations))
-          (let* ([match-found (find-match t)]
-                 [temp1 (car match-found)]
-                 [temp2 (cadr match-found)]
-                 [t1 (use-slot temp1 slot all-slots temp2)]
-                 [t2 (use-slot temp2 slot all-slots temp1)]
-                 [t (remove temp1 (remove temp2 t))])
-            (f t
-               (append used `(,t1) `(,t2))
-               (append affectations `(,(make-affectation slot t1 t2)))))))))
-
+         (format-to-return teams used affectations)
+         (let ([match-found (find-match t)])
+           (if match-found
+               (let* ([temp1 (car match-found)]
+                      [temp2 (cadr match-found)]
+                      [t1 (use-slot temp1 slot all-slots temp2)]
+                      [t2 (use-slot temp2 slot all-slots temp1)]
+                      [t (remove temp1 (remove temp2 t))])
+                 (f t
+                    (append used `(,t1) `(,t2))
+                    (append affectations `(,(make-affectation slot t1 t2)))))
+               (format-to-return teams used affectations)))))))
 (define (make-n-random-teams slots n)
   (define (select-random-slots slots nbslots)
     (take (shuffle slots) (min (- (length slots) 1) nbslots))) 
@@ -108,8 +112,19 @@
     (let ([res (make-matches match-number teams all-slots)])
       (if (empty? (cadr res))
           (begin
-           ;(pretty-display teams)
-            affectations
-           )
+           (pretty-display teams)
+           (pretty-display affectations)
+           (displayln (~a (length affectations) '/ (/ (* match-number n) 2)))
+           (for* ([i affectations]
+                  [j affectations])
+             (when (and (not (eq? i j))
+                        (let ([a (min (affectation-team1 i) (affectation-team2 i))]
+                              [b (max (affectation-team1 i) (affectation-team2 i))]
+                              [c (min (affectation-team1 j) (affectation-team2 j))]
+                              [d (max (affectation-team1 j) (affectation-team2 j))])
+                          (and (= a c) (= b d))))
+
+                        (displayln (~a i '- j)))
+             ))
           (f (car res) (append affectations (cadr res)))))))
 
