@@ -1,5 +1,8 @@
 #lang racket
+
 (provide make-team)
+(provide affectation-to-string)
+(provide solve)
 
 ;; id => id de la team
 ;; slots => list des créneaux disponibles
@@ -19,6 +22,12 @@
 
 (define (make-affectation slot team1 team2)
   (affectation slot (team-id team1) (team-id team2)))
+
+(define (affectation-to-string a)
+  (~a "("
+      (affectation-slot a) ", "
+      (affectation-team1 a) ", "
+      (affectation-team2 a) ")"))
 
 (define (team-equal? t1 t2)
   (equal? (team-id t1) (team-id t2)))
@@ -132,43 +141,22 @@
            `(,(length affectations) ,affectations ,teams))
           (f (car res) (append affectations (cadr res)))))))
 
-(define (solve slots-number teams-number match-number tries)
-  (define all-slots (generate-slots slots-number))
-  (define t (shuffle (make-n-random-teams all-slots teams-number)))
-  (define required-matchs-number (truncate (/ (* match-number teams-number) 2)))
+;; (define all-slots (generate-slots slots-number))
+;; (define t (shuffle (make-n-random-teams all-slots teams-number)))
+
+(define (solve teams all-slots match-number tries)
+  (define required-matchs-number (truncate (/ (* match-number (length teams)) 2)))
   
   (define (format-to-return res)
     (list (cadr res) `(,(car res) / ,required-matchs-number)))
-  
-  ;; (define t (list (team 8 '(8 0 3 1 5) '() '())
-  ;;                 (team 1 '(2 5 0) '() '())
-  ;;                 (team 14 '(1 8 3 2 9 7 0 6) '() '())
-  ;;                 (team 17 '(1 2 3 0 9 8) '() '())
-  ;;                 (team 10 '(1 4 6 7 3 2) '() '())
-  ;;                 (team 13 '(1 0 2 8 7 9 3) '() '())
-  ;;                 (team 16 '(2 8 6 7 4 3 9 0 5) '() '())
-  ;;                 (team 0 '(0 6 1 3 2 8 5 7 4) '() '())
-  ;;                 (team 7 '(0 2 1 3 6 5 7 9) '() '())
-  ;;                 (team 6 '(7) '() '())
-  ;;                 (team 18 '() '() '())
-  ;;                 (team 19 '(8 9 6 1 0 7 5 3 4) '() '())
-  ;;                 (team 2 '() '() '())
-  ;;                 (team 9 '(4 7 9) '() '())
-  ;;                 (team 11 '(6 7 0 3) '() '())
-  ;;                 (team 3 '(1 6 3 8) '() '())
-  ;;                 (team 4 '(8 7 5 4 2 0 6 1) '() '())
-  ;;                 (team 15 '(3 0 5 9) '() '())
-  ;;                 (team 5 '(1) '() '())
-  ;;                 (team 12 '() '() '())))
 
-  ;; (pretty-display t)
   (displayln (~a "matchs attendus : " required-matchs-number))
 
   (let f ([tries tries]
           [best '(0 0)])
     (if (= tries 0)
         (format-to-return best)
-        (let ([res (test t all-slots match-number)])
+        (let ([res (test teams all-slots match-number)])
           (if (= (car res) required-matchs-number)
               (format-to-return res)
               (f (- tries 1)
@@ -187,3 +175,5 @@
                (and (= a c) (= b d))))
         (error (~a i '- j))
         #f)))
+
+ 

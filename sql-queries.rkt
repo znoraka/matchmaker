@@ -2,6 +2,11 @@
 (require db)
 (require "matchmaker.rkt")
 
+(provide db-access)
+(provide get-slots)
+(provide get-teams)
+(provide add-matches)
+
 (define (db-access config-file)
   (define in (open-input-file config-file))
   
@@ -41,9 +46,11 @@
     (let ([id (vector-ref i 1)])
       (make-team id (get-slots-for-team id)))))
 
-(define (add-match pgc id-saison m)
-  
-  
-
-(define (test)
-  (db-access "/home/noe/Téléchargements/sqlConfig.txt"))
+(define (add-matches pgc id-saison matches)
+  (unless (zero? (length matches))
+    (query-exec pgc "TRUNCATE rush_4v4_matchs")
+    (query-exec pgc (~a "INSERT INTO rush_4v4_matchs "
+                        "(idSaison, idTeam1, idTeam2) "
+                        "VALUES "
+                        (string-join (map (λ (i)
+                                            (affectation-to-string i)) matches) ", ")))))
