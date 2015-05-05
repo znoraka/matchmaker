@@ -1,4 +1,5 @@
 #lang racket
+(provide make-team)
 
 ;; id => id de la team
 ;; slots => list des créneaux disponibles
