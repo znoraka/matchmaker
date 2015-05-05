@@ -38,8 +38,21 @@
 
 ;;ordonne les slots par nombre de teams ayant le slot
 ;;le slot est en tête de list suivi des teams ayant le slot
-(define (sort-slots match-number teams)
-;;crée une list de team pour chaque slot
+(define (sort-slots match-number teams all-slots)
+  ;;crée une list de team pour chaque slot
+  (define (make-all-unused-slots used-slots all-slots)
+    (filter (λ (i)
+              (not (member i used-slots))) all-slots))
+
+  (define (prepare-teams teams)
+    (map (λ (i)
+           (if (empty? (team-slots i))
+               (make-team (team-id i)
+                          (make-all-unused-slots (team-used-slots i) all-slots)
+                          (team-used-slots i)
+                          (team-opponents i))
+               i)) teams))
+  
   (define (make-teams-hash teams)
     (let ([h (make-hash)])
       (for-each (λ (i)
@@ -48,26 +61,21 @@
                                 (hash-set! h j (cons i (hash-ref h j '()))))
                               (team-slots i)))) teams)
       h))
-  (map (λ (i)
-         (cons (car i)
-               (sort (cdr i)
-                     (λ (i j)
-                       (< (length (team-opponents i)) (length (team-opponents j)))))))
-       (sort (hash->list (make-teams-hash teams)) (λ (i j)
-                                                    (> (length i) (length j))))))
+  (sort (hash->list (make-teams-hash (prepare-teams teams))) (λ (i j)
+                                                               (> (length i) (length j)))))
 
 ;; marque le slot comme utilisé et l'enleve des slots disponibles
 (define (use-slot team slot all-slots opponent)
-  (define (make-all-unused-slots used-slots all-slots)
-    (filter (λ (i)
-              (not (member i used-slots))) all-slots))
+  ;; (define (make-all-unused-slots used-slots all-slots)
+  ;;   (filter (λ (i)
+  ;;             (not (member i used-slots))) all-slots))
   
   (let ([slots (remove slot (team-slots team))])
-    (let ([slots (if (empty? slots) (make-all-unused-slots (team-used-slots team) all-slots) slots)])
+    ;; (let ([slots (if (empty? slots) (make-all-unused-slots (team-used-slots team) all-slots) slots)])
       (make-team (team-id team)
                  slots
                  (cons slot (team-used-slots team))
-                 (cons (team-id opponent) (team-opponents team))))))
+                 (cons (team-id opponent) (team-opponents team)))))
 
 ;; match-number
 ;;=> nombre de match
@@ -91,7 +99,7 @@
                                         (team-equal? i j)) used))) teams)])
       `(,(append teams used) ,affectations)))
 
-  (let* ([sorted-slots (sort-slots match-number teams)])
+  (let* ([sorted-slots (sort-slots match-number teams all-slots)])
     (if (empty? sorted-slots)
         '(() ())
         (let ([slot (caar sorted-slots)]
@@ -138,6 +146,26 @@
 (define (solve n s tries)
   (define all-slots (generate-slots n))
   (define t (shuffle (make-n-random-teams all-slots s)))
+  ;; (define t (list (team 8 '(8 0 3 1 5) '() '())
+  ;;                 (team 1 '(2 5 0) '() '())
+  ;;                 (team 14 '(1 8 3 2 9 7 0 6) '() '())
+  ;;                 (team 17 '(1 2 3 0 9 8) '() '())
+  ;;                 (team 10 '(1 4 6 7 3 2) '() '())
+  ;;                 (team 13 '(1 0 2 8 7 9 3) '() '())
+  ;;                 (team 16 '(2 8 6 7 4 3 9 0 5) '() '())
+  ;;                 (team 0 '(0 6 1 3 2 8 5 7 4) '() '())
+  ;;                 (team 7 '(0 2 1 3 6 5 7 9) '() '())
+  ;;                 (team 6 '(7) '() '())
+  ;;                 (team 18 '() '() '())
+  ;;                 (team 19 '(8 9 6 1 0 7 5 3 4) '() '())
+  ;;                 (team 2 '() '() '())
+  ;;                 (team 9 '(4 7 9) '() '())
+  ;;                 (team 11 '(6 7 0 3) '() '())
+  ;;                 (team 3 '(1 6 3 8) '() '())
+  ;;                 (team 4 '(8 7 5 4 2 0 6 1) '() '())
+  ;;                 (team 15 '(3 0 5 9) '() '())
+  ;;                 (team 5 '(1) '() '())
+  ;;                 (team 12 '() '() '())))
 
   (pretty-display t)
   (displayln (~a "matchs attendus : " (truncate (/ (* match-number s) 2))))
