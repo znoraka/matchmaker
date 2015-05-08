@@ -6,6 +6,8 @@
 (provide get-slots)
 (provide get-teams)
 (provide add-matches)
+(provide insert-teams)
+(provide insert-slots)
 
 (define (db-access config-file)
   (define in (open-input-file config-file))
@@ -36,9 +38,11 @@
 
 (define (get-teams pgc id-saison)
   (define (get-slots-for-team id-team)
-    (vector->list (query-rows pgc (~a "SELECT idSlot "
+    (let ([res (query-rows pgc (~a "SELECT idSlot "
                                       "FROM rush_4v4_timeslots_selected "
-                                      "WHERE idTeam = " id-team))))
+                                      "WHERE idTeam = " id-team))])
+      (map (λ (i)
+             (vector-ref i 0)) res)))
     
   (for/list ([i (query-rows pgc (~a "SELECT * "
                                     "FROM rush_4v4_registedteams "
@@ -50,7 +54,23 @@
   (unless (zero? (length matches))
     (query-exec pgc "TRUNCATE rush_4v4_matchs")
     (query-exec pgc (~a "INSERT INTO rush_4v4_matchs "
-                        "(idSaison, idTeam1, idTeam2) "
+                        "(idSaison, idSlot, idTeam1, idTeam2) "
                         "VALUES "
                         (string-join (map (λ (i)
-                                            (affectation-to-string i)) matches) ", ")))))
+                                            (affectation-to-string id-saison i)) matches) ", ")))))
+
+(define (insert-teams pgc id-saison teams)
+  (query-exec pgc (~a "INSERT INTO rush_4v4_registedteams "
+                      "(idSaison, idTeam) "
+                      "VALUES "
+                      (string-join (map (λ (i)
+                                          (~a "(" id-saison ", " (team-id i) ")")) teams) ", "))))
+
+(define (insert-slots pgc teams)
+  (query-exec pgc (~a "INSERT INTO rush_4v4_timeslots_selected "
+                      "(idTeam, idSlot) "
+                      "VALUES "
+                      (string-join (foldr (λ (i l)
+                                            (append (map (λ (j)
+                                                           (~a "(" (team-id i) ", " j ")")) (team-slots i)) l)) '() teams) ", ")))
+  )

@@ -19,3 +19,10 @@
         "1"
         "5"
         "1000"))
+
+(define (generate-random-data teams-number id-saison)
+  (let* ([pgc (db-access "/home/noe/Téléchargements/sqlConfig.txt")]
+         [slots (get-slots pgc)]
+         [teams (make-n-random-teams slots teams-number)])
+      (insert-teams pgc id-saison teams)
+      (insert-slots pgc teams)))

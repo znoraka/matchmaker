@@ -3,6 +3,10 @@
 (provide make-team)
 (provide affectation-to-string)
 (provide solve)
+(provide generate-slots)
+(provide make-n-random-teams)
+(provide team-id)
+(provide team-slots)
 
 ;; id => id de la team
 ;; slots => list des créneaux disponibles
@@ -23,8 +27,9 @@
 (define (make-affectation slot team1 team2)
   (affectation slot (team-id team1) (team-id team2)))
 
-(define (affectation-to-string a)
+(define (affectation-to-string id-saison a)
   (~a "("
+      id-saison ", "
       (affectation-slot a) ", "
       (affectation-team1 a) ", "
       (affectation-team2 a) ")"))
@@ -126,8 +131,8 @@
     (take (shuffle slots) (min (- (length slots) 1) nbslots))) 
   (build-list n (λ (i)
                   (make-team i (select-random-slots slots
-                                                    (random 10)
-                                                    ;; (+ 1 (random (- (length slots) 1)))
+                                                    ;; (random 10)
+                                                    (+ 1 (random (- (length slots) 1)))
                                                     )))))
 
 (define (test t all-slots match-number)
