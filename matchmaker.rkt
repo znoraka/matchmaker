@@ -152,18 +152,16 @@
 (define (solve teams all-slots match-number tries)
   (define required-matchs-number (truncate (/ (* match-number (length teams)) 2)))
   
-  (define (format-to-return res)
-    (list (cadr res) `(,(car res) / ,required-matchs-number)))
-
-  (displayln (~a "matchs attendus : " required-matchs-number))
-
+  (define (format-to-return res t)
+    (list (cadr res) `(,(car res) / ,required-matchs-number in ,(- tries t) tries)))
+  
   (let f ([tries tries]
           [best '(0 0)])
     (if (= tries 0)
-        (format-to-return best)
+        (format-to-return best tries)
         (let ([res (test teams all-slots match-number)])
           (if (= (car res) required-matchs-number)
-              (format-to-return res)
+              (format-to-return res tries)
               (f (- tries 1)
                  (if (> (car res) (car best))
                      res

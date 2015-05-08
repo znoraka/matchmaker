@@ -12,7 +12,7 @@
            [teams (get-teams pgc id-saison)]
            [slots (get-slots pgc)])
       (let ([res (solve teams slots match-number tries)])
-        (displayln (~a "found " (cadr res) " matches"))
+        (displayln (cadr res))
         (add-matches pgc id-saison (car res))))))
 
 (main #("/home/noe/Téléchargements/sqlConfig.txt"
