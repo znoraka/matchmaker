@@ -131,8 +131,8 @@
     (take (shuffle slots) (min (- (length slots) 1) nbslots))) 
   (build-list n (λ (i)
                   (make-team i (select-random-slots slots
-                                                    ;; (random 10)
-                                                    (+ 1 (random (- (length slots) 1)))
+                                                    (random 10)
+                                                    ;; (+ 1 (random (- (length slots) 1)))
                                                     )))))
 
 (define (test t all-slots match-number)

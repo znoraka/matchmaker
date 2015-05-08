@@ -60,6 +60,7 @@
                                             (affectation-to-string id-saison i)) matches) ", ")))))
 
 (define (insert-teams pgc id-saison teams)
+  (query-exec pgc "TRUNCATE rush_4v4_registedteams")
   (query-exec pgc (~a "INSERT INTO rush_4v4_registedteams "
                       "(idSaison, idTeam) "
                       "VALUES "
@@ -67,6 +68,7 @@
                                           (~a "(" id-saison ", " (team-id i) ")")) teams) ", "))))
 
 (define (insert-slots pgc teams)
+  (query-exec pgc "TRUNCATE rush_4v4_timeslots_selected")
   (query-exec pgc (~a "INSERT INTO rush_4v4_timeslots_selected "
                       "(idTeam, idSlot) "
                       "VALUES "

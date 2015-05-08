@@ -18,7 +18,7 @@
 (main #("/home/noe/Téléchargements/sqlConfig.txt"
         "1"
         "5"
-        "1000"))
+        "10000"))
 
 (define (generate-random-data teams-number id-saison)
   (let* ([pgc (db-access "/home/noe/Téléchargements/sqlConfig.txt")]
