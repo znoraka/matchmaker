@@ -6,8 +6,6 @@
 (provide get-slots)
 (provide get-teams)
 (provide add-matches)
-(provide insert-teams)
-(provide insert-slots)
 
 (define (db-access config-file)
   (define in (open-input-file config-file))
@@ -36,13 +34,15 @@
                                     "WHERE enable = 1"))])
              (vector-ref i 0)))
 
-(define (get-teams pgc id-saison)
+(define (get-teams pgc id-saison all-slots)
   (define (get-slots-for-team id-team)
     (let ([res (query-rows pgc (~a "SELECT idSlot "
                                       "FROM rush_4v4_timeslots_selected "
                                       "WHERE idTeam = " id-team))])
-      (map (λ (i)
-             (vector-ref i 0)) res)))
+      (filter (λ (i)
+                (member i all-slots))
+              (map (λ (i)
+                     (vector-ref i 0)) res))))
     
   (for/list ([i (query-rows pgc (~a "SELECT * "
                                     "FROM rush_4v4_registedteams "
@@ -52,27 +52,27 @@
 
 (define (add-matches pgc id-saison matches)
   (unless (zero? (length matches))
-    (query-exec pgc "TRUNCATE rush_4v4_matchs")
+    (query-exec pgc (~a "DELETE FROM rush_4v4_matchs WHERE idSaison = " id-saison))
     (query-exec pgc (~a "INSERT INTO rush_4v4_matchs "
                         "(idSaison, idSlot, idTeam1, idTeam2) "
                         "VALUES "
                         (string-join (map (λ (i)
                                             (affectation-to-string id-saison i)) matches) ", ")))))
 
-(define (insert-teams pgc id-saison teams)
-  (query-exec pgc "TRUNCATE rush_4v4_registedteams")
-  (query-exec pgc (~a "INSERT INTO rush_4v4_registedteams "
-                      "(idSaison, idTeam) "
-                      "VALUES "
-                      (string-join (map (λ (i)
-                                          (~a "(" id-saison ", " (team-id i) ")")) teams) ", "))))
+;; (define (insert-teams pgc id-saison teams)
+;;   (query-exec pgc "TRUNCATE rush_4v4_registedteams")
+;;   (query-exec pgc (~a "INSERT INTO rush_4v4_registedteams "
+;;                       "(idSaison, idTeam) "
+;;                       "VALUES "
+;;                       (string-join (map (λ (i)
+;;                                           (~a "(" id-saison ", " (team-id i) ")")) teams) ", "))))
 
-(define (insert-slots pgc teams)
-  (query-exec pgc "TRUNCATE rush_4v4_timeslots_selected")
-  (query-exec pgc (~a "INSERT INTO rush_4v4_timeslots_selected "
-                      "(idTeam, idSlot) "
-                      "VALUES "
-                      (string-join (foldr (λ (i l)
-                                            (append (map (λ (j)
-                                                           (~a "(" (team-id i) ", " j ")")) (team-slots i)) l)) '() teams) ", ")))
-  )
+;; (define (insert-slots pgc teams)
+;;   (query-exec pgc "TRUNCATE rush_4v4_timeslots_selected")
+;;   (query-exec pgc (~a "INSERT INTO rush_4v4_timeslots_selected "
+;;                       "(idTeam, idSlot) "
+;;                       "VALUES "
+;;                       (string-join (foldr (λ (i l)
+;;                                             (append (map (λ (j)
+;;                                                            (~a "(" (team-id i) ", " j ")")) (team-slots i)) l)) '() teams) ", ")))
+;;   )
