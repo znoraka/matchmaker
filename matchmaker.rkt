@@ -1,5 +1,7 @@
 #lang racket
 
+(require racket/format)
+
 (provide make-team)
 (provide affectation-to-string)
 (provide solve)

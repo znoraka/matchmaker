@@ -1,5 +1,6 @@
 #lang racket
 
+(require racket/format)
 (require "matchmaker.rkt")
 (require "sql-queries.rkt")
 

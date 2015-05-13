@@ -1,4 +1,6 @@
 #lang racket
+
+(require racket/format)
 (require db)
 (require "matchmaker.rkt")
 
