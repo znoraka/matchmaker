@@ -49,7 +49,7 @@
 
 ;;ordonne les slots par nombre de teams ayant le slot
 ;;le slot est en tête de list suivi des teams ayant le slot
-(define (sort-slots match-number teams all-slots)
+(define (sort-slots match-number teams all-slots max-matches-per-slot slots-use-count)
   ;;crée une list de team pour chaque slot
   (define (make-teams-hash teams)
     (let ([h (make-hash)])
@@ -59,8 +59,11 @@
                                 (hash-set! h j (cons i (hash-ref h j '()))))
                               (team-slots i)))) teams)
       h))
-  (sort (hash->list (make-teams-hash teams)) (λ (i j)
-                                               (> (length i) (length j)))))
+  (sort (filter (λ (i)
+                  (not (or (< (length i) 3) (> (hash-ref slots-use-count (car i)) max-matches-per-slot))))
+                (hash->list (make-teams-hash teams)))
+        (λ (i j)
+          (> (length i) (length j)))))
 
 ;;ajoute tous les slots non utilisés aux teams sans slot
 (define (prepare-teams teams all-slots)
@@ -87,7 +90,7 @@
 ;; match-number => nombre de match
 ;; sorted-slots => slots triés par nombre de teams
 ;; crée tous les matches possibles pour le slot le plus peuplé
-(define (make-matches match-number teams all-slots)
+(define (make-matches match-number teams all-slots max-matches-per-slot used-slots-count)
   (define (already-matched? t1 t2)
     (member (team-id t2) (team-opponents t1)))
 
@@ -105,14 +108,14 @@
                                         (team-equal? i j)) used))) teams)])
       `(,(append teams used) ,affectations)))
 
-  (let* ([sorted-slots (sort-slots match-number (prepare-teams teams all-slots) all-slots)])
+  (let* ([sorted-slots (sort-slots match-number (prepare-teams teams all-slots) all-slots max-matches-per-slot used-slots-count)])
     (if (empty? sorted-slots)
         '(() ())
         (let ([slot (caar sorted-slots)]
               [t (filter (λ (i)
                            (available? match-number i)) (cdar sorted-slots))])
           (let f ([t t] [used '()] [affectations '()])
-            (if (< (length t) 2)
+            (if (or (< (length t) 2) (>= (hash-ref used-slots-count slot) max-matches-per-slot))
                 (format-to-return teams used affectations)
                 (let ([match-found (find-match (shuffle t))])
                   (if match-found
@@ -121,6 +124,7 @@
                              [t1 (use-slot temp1 slot all-slots temp2)]
                              [t2 (use-slot temp2 slot all-slots temp1)]
                              [t (remove temp1 (remove temp2 t))])
+                        (hash-set! used-slots-count slot (+ (hash-ref used-slots-count slot) 1))
                         (f t
                            (append used `(,t1) `(,t2))
                            (append affectations `(,(make-affectation slot t1 t2)))))
@@ -135,21 +139,21 @@
                                                     ;; (+ 1 (random (- (length slots) 1)))
                                                     )))))
 
-(define (test t all-slots match-number)
+(define (test t all-slots match-number max-matches-per-slot)
+  (define used-slots-count (make-hash))
+  (for-each (λ (i)
+              (hash-set! used-slots-count i 0)) all-slots)
+
   (let f ([teams t] (affectations '()))
-    (let ([res (make-matches match-number teams all-slots)])
+    (let ([res (make-matches match-number teams all-slots max-matches-per-slot used-slots-count)])
       (if (empty? (cadr res))
-          (begin
-            ;; (pretty-display teams)
-           ;; (pretty-display affectations)
-            ;; (displayln (~a (length affectations) '/ (/ (* match-number n) 2)))
-           `(,(length affectations) ,affectations ,teams))
+           `(,(length affectations) ,affectations ,teams)
           (f (car res) (append affectations (cadr res)))))))
 
 ;; (define all-slots (generate-slots slots-number))
 ;; (define t (shuffle (make-n-random-teams all-slots teams-number)))
 
-(define (solve teams all-slots match-number tries)
+(define (solve teams all-slots match-number tries max-matches-per-slot)
   (define required-matchs-number (truncate (/ (* match-number (length teams)) 2)))
   
   (define (format-to-return res t)
@@ -159,7 +163,7 @@
           [best '(0 0)])
     (if (= tries 0)
         (format-to-return best tries)
-        (let ([res (test teams all-slots match-number)])
+        (let ([res (test teams all-slots match-number max-matches-per-slot)])
           (if (= (car res) required-matchs-number)
               (format-to-return res tries)
               (f (- tries 1)
