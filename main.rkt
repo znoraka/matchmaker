@@ -43,13 +43,14 @@
                [teams (get-teams pgc id-saison slots)])
           (displayln `(found ,(length teams) teams and ,(length slots) slots))
           (let ([res (solve teams slots match-number tries max-matches-per-slot)])
+            (pretty-display (caddr res))
             (displayln (cadr res))
             (add-matches pgc id-saison (car res)))))))
 
 ;; (main #("-c" "/home/noe/Téléchargements/sqlConfig.txt"
 ;;         "-s" "1"
 ;;         "-m" "5"
-;;         "-t" "100000"
+;;         "-t" "10"
 ;;         "-l" "3"))
 
 (main (current-command-line-arguments))

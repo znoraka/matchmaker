@@ -159,7 +159,12 @@
   (define required-matchs-number (truncate (/ (* match-number (length teams)) 2)))
   
   (define (format-to-return res t)
-    (list (cadr res) `(,(car res) / ,required-matchs-number in ,(- tries t) tries)))
+    (list
+     (cadr res) `(,(car res) / ,required-matchs-number matches in ,(- tries t) tries)
+     (map (λ (i)
+            `(team ,(team-id i) only has ,(length (team-used-slots i)) matches))
+          (filter (λ (i)
+                    (available? match-number i)) (caddr res)))))
   
   (let f ([tries tries]
           [best '(0 0)])
